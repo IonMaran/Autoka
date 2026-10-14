@@ -159,14 +159,22 @@
         </div>
     </div>
 
-    <!-- LÓGICA Y CONEXIÓN CON FIREBASE -->
+    <!-- SCRIPT 1: INTERFAZ (Funciona siempre, aunque Firebase falle) -->
+    <script>
+        function abrirModal(id) { document.getElementById(id).style.display = 'flex'; }
+        function cerrarModal(id) {
+            document.getElementById(id).style.display = 'none';
+            if(id === 'modal-viaje') document.getElementById('form-viaje').reset();
+            if(id === 'modal-reserva') document.getElementById('form-reserva').reset();
+        }
+    </script>
+
+    <!-- SCRIPT 2: BASE DE DATOS Y CALENDARIO -->
     <script type="module">
-        // Importar Firebase de forma modular desde Google
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getFirestore, collection, addDoc, onSnapshot, query, orderBy } 
         from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-        // Tus credenciales reales de Firebase
         const firebaseConfig = {
             apiKey: "AIzaSyDmI43THrBJadjFKDv5Cj0z1EubNJdajGY",
             authDomain: "autocaravana-de45c.firebaseapp.com",
@@ -177,83 +185,111 @@
             measurementId: "G-WT34TWDGHZ"
         };
 
-        // Inicializar la conexión
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
 
-        // Colores temáticos por usuario
         const userColors = {
-            Ekaitz: '#3788d8', // Azul
-            Pablo: '#28a745',  // Verde
-            Dani: '#fd7e14',   // Naranja
-            Ion: '#dc3545'     // Rojo
+            Ekaitz: '#3788d8', Pablo: '#28a745', Dani: '#fd7e14', Ion: '#dc3545'
         };
 
-        let calendar; // Variable global para el calendario
+        let calendar;
 
-        // 1. Cargar Calendario al iniciar la página
         document.addEventListener('DOMContentLoaded', function() {
             const calendarEl = document.getElementById('calendar');
             calendar = new FullCalendar.Calendar(calendarEl, {
                 initialView: 'dayGridMonth',
-                firstDay: 1, // La semana empieza en Lunes
-                locale: 'es', // Idioma español
-                headerToolbar: {
-                    left: 'prev,next today',
-                    center: 'title',
-                    right: 'dayGridMonth'
-                },
-                events: [] // Se llenará dinámicamente con Firebase
+                firstDay: 1,
+                locale: 'es',
+                headerToolbar: { left: 'prev,next today', center: 'title', right: 'dayGridMonth' },
+                events: [] 
             });
             calendar.render();
         });
 
-        // 2. Leer RESERVAS en tiempo real desde Firestore
+        // Cargar Reservas con control de errores
         const qReservas = query(collection(db, "reservas"));
         onSnapshot(qReservas, (snapshot) => {
             const eventos = [];
             snapshot.forEach((doc) => {
                 const data = doc.data();
-                
-                // FullCalendar requiere que la fecha de fin sea el día +1 para rellenar la casilla completa
                 const endDate = new Date(data.fin);
                 endDate.setDate(endDate.getDate() + 1);
-                
                 eventos.push({
-                    id: doc.id,
-                    title: `🚐 ${data.usuario}`,
-                    start: data.inicio,
-                    end: endDate.toISOString().split('T')[0],
-                    color: userColors[data.usuario],
-                    allDay: true
+                    id: doc.id, title: `🚐 ${data.usuario}`, start: data.inicio, end: endDate.toISOString().split('T')[0], color: userColors[data.usuario], allDay: true
                 });
             });
-            
-            // Actualizar el calendario visualmente
             if(calendar) {
                 calendar.removeAllEvents();
                 calendar.addEventSource(eventos);
             }
+        }, (error) => {
+            console.error("Error Reservas:", error);
+            alert("Error de permisos en Firebase. Revisa las reglas de Firestore.");
         });
 
-        // 3. Leer VIAJES en tiempo real desde Firestore
+        // Cargar Viajes con control de errores
         const qViajes = query(collection(db, "viajes"), orderBy("fecha", "desc"));
         onSnapshot(qViajes, (snapshot) => {
             const tbody = document.getElementById('tabla-viajes');
             tbody.innerHTML = '';
             
-            // Reiniciar contadores a cero cada vez que recalculamos
             const contadores = { Ekaitz: 0, Pablo: 0, Dani: 0, Ion: 0 };
             let viajesRegistrados = 0;
 
             snapshot.forEach((doc) => {
                 const v = doc.data();
                 viajesRegistrados++;
-                
-                // Sumar al contador personal
-                if(contadores[v.usuario] !== undefined) {
-                    contadores[v.usuario] += v.distancia;
-                }
+                if(contadores[v.usuario] !== undefined) contadores[v.usuario] += v.distancia;
 
-                // Generar fila en la tabla de historial
-                const tr = document.createElement
+                const tr = document.createElement('tr');
+                tr.innerHTML = `<td>${v.fecha}</td><td><strong style="color:${userColors[v.usuario]}">${v.usuario}</strong></td><td>${v.destino}</td><td><b>${v.distancia}</b> km</td>`;
+                tbody.appendChild(tr);
+            });
+
+            if(viajesRegistrados === 0) {
+                tbody.innerHTML = '<tr><td colspan="4" style="text-align: center;">Aún no hay viajes registrados.</td></tr>';
+            }
+
+            Object.keys(contadores).forEach(user => {
+                const el = document.getElementById(`km-${user}`);
+                if(el) el.innerText = contadores[user];
+            });
+        }, (error) => {
+            console.error("Error Viajes:", error);
+            document.getElementById('tabla-viajes').innerHTML = `<tr><td colspan="4" style="color:red; text-align: center;">Error de Firebase: ${error.message} <br><br>🚨 Probablemente la base de datos no está creada o las Reglas no están en true.</td></tr>`;
+        });
+
+        // Enviar nuevo Viaje
+        document.getElementById('form-viaje').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const usuario = document.getElementById('v-usuario').value;
+            const destino = document.getElementById('v-destino').value;
+            const fecha = document.getElementById('v-fecha').value;
+            const kmInicio = parseInt(document.getElementById('v-kminicio').value);
+            const kmFinal = parseInt(document.getElementById('v-kmfinal').value);
+            
+            if (kmFinal <= kmInicio) return alert("Los kilómetros finales deben ser mayores que los iniciales.");
+            
+            try {
+                await addDoc(collection(db, "viajes"), { usuario, destino, fecha, distancia: kmFinal - kmInicio, timestamp: new Date() });
+                cerrarModal('modal-viaje');
+            } catch (error) { alert("Error al guardar: " + error.message); }
+        });
+
+        // Enviar nueva Reserva
+        document.getElementById('form-reserva').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const usuario = document.getElementById('r-usuario').value;
+            const inicio = document.getElementById('r-inicio').value;
+            const fin = document.getElementById('r-fin').value;
+
+            if (new Date(fin) < new Date(inicio)) return alert("La fecha de fin no puede ser anterior a la de inicio.");
+            
+            try {
+                await addDoc(collection(db, "reservas"), { usuario, inicio, fin });
+                cerrarModal('modal-reserva');
+            } catch (error) { alert("Error al guardar: " + error.message); }
+        });
+    </script>
+</body>
+</html>
