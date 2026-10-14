@@ -4,172 +4,509 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Autocaravana Compartida</title>
+    
+    <!-- Tailwind CSS for styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- FullCalendar for the interactive calendar -->
+    <script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.js'></script>
+    
     <style>
-        body { font-family: system-ui, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; background: #f4f4f9; }
-        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; margin-bottom: 20px; }
-        .card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); text-align: center; }
-        .card h3 { margin: 0 0 10px 0; color: #333; }
-        .card .km { font-size: 24px; font-weight: bold; color: #0066cc; }
-        button { background: #0066cc; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; font-size: 16px; width: 100%; }
-        button:hover { background: #0052a3; }
+        body { font-family: 'Inter', system-ui, sans-serif; background-color: #f3f4f6; }
         
-        /* Modal Styles */
-        #modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); align-items: center; justify-content: center; }
-        .modal-content { background: white; padding: 30px; border-radius: 8px; width: 90%; max-width: 400px; }
-        .form-group { margin-bottom: 15px; }
-        .form-group label { display: block; margin-bottom: 5px; font-weight: bold; }
-        .form-group input, .form-group select { width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
-        .btn-group { display: flex; gap: 10px; margin-top: 20px; }
-        .btn-cancel { background: #ccc; color: #333; }
-        .btn-cancel:hover { background: #bbb; }
-        
-        /* Tabla de viajes */
-        table { width: 100%; background: white; border-collapse: collapse; margin-top: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #ddd; }
-        th { background-color: #f8f9fa; }
+        /* User Color Themes */
+        .theme-ekaitz { background-color: #eff6ff; border-color: #3b82f6; }
+        .btn-ekaitz { background-color: #3b82f6; color: white; }
+        .btn-ekaitz:hover { background-color: #2563eb; }
+        .text-ekaitz { color: #3b82f6; }
+
+        .theme-pablo { background-color: #f0fdf4; border-color: #22c55e; }
+        .btn-pablo { background-color: #22c55e; color: white; }
+        .btn-pablo:hover { background-color: #16a34a; }
+        .text-pablo { color: #22c55e; }
+
+        .theme-dani { background-color: #fff7ed; border-color: #f97316; }
+        .btn-dani { background-color: #f97316; color: white; }
+        .btn-dani:hover { background-color: #ea580c; }
+        .text-dani { color: #f97316; }
+
+        .theme-ion { background-color: #fef2f2; border-color: #ef4444; }
+        .btn-ion { background-color: #ef4444; color: white; }
+        .btn-ion:hover { background-color: #dc2626; }
+        .text-ion { color: #ef4444; }
+
+        /* Hide scrollbar for cleaner table look */
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+        /* Calendar tweaks */
+        .fc { background: white; padding: 1rem; border-radius: 0.5rem; box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1); }
+        .fc-toolbar-title { font-size: 1.25rem !important; font-weight: 600 !important; }
+        .fc-button-primary { background-color: #4f46e5 !important; border-color: #4f46e5 !important; }
+        .fc-button-primary:hover { background-color: #4338ca !important; border-color: #4338ca !important; }
     </style>
 </head>
-<body>
+<body class="text-gray-800 antialiased p-4 md:p-8">
 
-    <h1>🚐 Uso de la Autocaravana</h1>
+    <div class="max-w-6xl mx-auto space-y-8">
+        
+        <!-- Header -->
+        <header class="flex flex-col md:flex-row justify-between items-center bg-white p-6 rounded-xl shadow-sm gap-4">
+            <h1 class="text-2xl md:text-3xl font-bold flex items-center gap-3">
+                <span class="text-4xl">🚐</span> Gestión Autocaravana
+            </h1>
+            <button onclick="openTripModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-lg font-semibold shadow-md transition-colors w-full md:w-auto">
+                + Añadir Viaje
+            </button>
+        </header>
 
-    <!-- Contadores de Kilómetros -->
-    <div class="grid">
-        <div class="card"><h3>Ekaitz</h3><div class="km" id="km-Ekaitz">0</div><small>km totales</small></div>
-        <div class="card"><h3>Pablo</h3><div class="km" id="km-Pablo">0</div><small>km totales</small></div>
-        <div class="card"><h3>Dani</h3><div class="km" id="km-Dani">0</div><small>km totales</small></div>
-        <div class="card"><h3>Ion</h3><div class="km" id="km-Ion">0</div><small>km totales</small></div>
+        <!-- User Cards Grid -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            
+            <!-- Ekaitz -->
+            <div class="theme-ekaitz border-t-4 rounded-xl shadow-sm p-5 flex flex-col justify-between">
+                <div>
+                    <h2 class="text-xl font-bold text-gray-800">Ekaitz</h2>
+                    <div class="mt-2 mb-4">
+                        <span class="text-3xl font-black text-ekaitz" id="km-Ekaitz">0</span>
+                        <span class="text-sm font-medium text-gray-500 uppercase tracking-wide">km</span>
+                    </div>
+                </div>
+                <button onclick="openBookingModal('Ekaitz')" class="btn-ekaitz w-full py-2 rounded font-medium transition-colors shadow-sm">
+                    📅 Elegir Semana
+                </button>
+            </div>
+
+            <!-- Pablo -->
+            <div class="theme-pablo border-t-4 rounded-xl shadow-sm p-5 flex flex-col justify-between">
+                <div>
+                    <h2 class="text-xl font-bold text-gray-800">Pablo</h2>
+                    <div class="mt-2 mb-4">
+                        <span class="text-3xl font-black text-pablo" id="km-Pablo">0</span>
+                        <span class="text-sm font-medium text-gray-500 uppercase tracking-wide">km</span>
+                    </div>
+                </div>
+                <button onclick="openBookingModal('Pablo')" class="btn-pablo w-full py-2 rounded font-medium transition-colors shadow-sm">
+                    📅 Elegir Semana
+                </button>
+            </div>
+
+            <!-- Dani -->
+            <div class="theme-dani border-t-4 rounded-xl shadow-sm p-5 flex flex-col justify-between">
+                <div>
+                    <h2 class="text-xl font-bold text-gray-800">Dani</h2>
+                    <div class="mt-2 mb-4">
+                        <span class="text-3xl font-black text-dani" id="km-Dani">0</span>
+                        <span class="text-sm font-medium text-gray-500 uppercase tracking-wide">km</span>
+                    </div>
+                </div>
+                <button onclick="openBookingModal('Dani')" class="btn-dani w-full py-2 rounded font-medium transition-colors shadow-sm">
+                    📅 Elegir Semana
+                </button>
+            </div>
+
+            <!-- Ion -->
+            <div class="theme-ion border-t-4 rounded-xl shadow-sm p-5 flex flex-col justify-between">
+                <div>
+                    <h2 class="text-xl font-bold text-gray-800">Ion</h2>
+                    <div class="mt-2 mb-4">
+                        <span class="text-3xl font-black text-ion" id="km-Ion">0</span>
+                        <span class="text-sm font-medium text-gray-500 uppercase tracking-wide">km</span>
+                    </div>
+                </div>
+                <button onclick="openBookingModal('Ion')" class="btn-ion w-full py-2 rounded font-medium transition-colors shadow-sm">
+                    📅 Elegir Semana
+                </button>
+            </div>
+
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            
+            <!-- Calendar Section -->
+            <div class="lg:col-span-2 space-y-4">
+                <h2 class="text-xl font-bold text-gray-700 ml-1">Calendario de Reservas</h2>
+                <div id="calendar" class="h-[500px]"></div>
+            </div>
+
+            <!-- History Section -->
+            <div class="space-y-4">
+                <h2 class="text-xl font-bold text-gray-700 ml-1">Últimos Viajes</h2>
+                <div class="bg-white rounded-xl shadow-sm overflow-hidden border border-gray-100">
+                    <div class="overflow-x-auto no-scrollbar max-h-[500px] overflow-y-auto">
+                        <table class="w-full text-sm text-left">
+                            <thead class="text-xs text-gray-500 uppercase bg-gray-50 sticky top-0">
+                                <tr>
+                                    <th class="px-4 py-3">Fecha</th>
+                                    <th class="px-4 py-3">User/Destino</th>
+                                    <th class="px-4 py-3 text-right">KMs</th>
+                                </tr>
+                            </thead>
+                            <tbody id="trip-history" class="divide-y divide-gray-100">
+                                <!-- JS will populate trips here -->
+                            </tbody>
+                        </table>
+                        <div id="no-trips-msg" class="text-center p-6 text-gray-400 text-sm hidden">
+                            Aún no hay viajes registrados.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
     </div>
 
-    <button onclick="abrirModal()">+ Añadir viaje</button>
-
-    <!-- Historial / Calendario de Viajes -->
-    <h2 style="margin-top: 30px;">Historial de Viajes</h2>
-    <table>
-        <thead>
-            <tr>
-                <th>Fecha</th>
-                <th>Usuario</th>
-                <th>Destino</th>
-                <th>Recorrido</th>
-            </tr>
-        </thead>
-        <tbody id="tabla-viajes">
-            <!-- Los viajes se cargarán aquí -->
-        </tbody>
-    </table>
-
-    <!-- Formulario Modal -->
-    <div id="modal">
-        <div class="modal-content">
-            <h2 style="margin-top:0;">Nuevo Viaje</h2>
-            <form id="viaje-form" onsubmit="guardarViaje(event)">
-                <div class="form-group">
-                    <label>Usuario</label>
-                    <select id="usuario" required>
+    <!-- OVERLAYS AND MODALS -->
+    
+    <!-- Trip Modal -->
+    <div id="trip-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden items-center justify-center z-50 p-4">
+        <div class="bg-white rounded-2xl p-6 md:p-8 w-full max-w-md shadow-2xl transform transition-all">
+            <h3 class="text-2xl font-bold mb-6 text-gray-800">Registrar Viaje</h3>
+            <form id="trip-form" class="space-y-4">
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-1">Usuario</label>
+                    <select id="trip-user" required class="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-gray-50">
                         <option value="Ekaitz">Ekaitz</option>
                         <option value="Pablo">Pablo</option>
                         <option value="Dani">Dani</option>
                         <option value="Ion">Ion</option>
                     </select>
                 </div>
-                <div class="form-group">
-                    <label>Destino</label>
-                    <input type="text" id="destino" required>
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-1">Destino</label>
+                    <input type="text" id="trip-destination" required placeholder="Ej: Pirineos, Landas..." class="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 bg-gray-50">
                 </div>
-                <div class="form-group">
-                    <label>Fecha</label>
-                    <input type="date" id="fecha" required>
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-1">Fecha del Viaje</label>
+                    <input type="date" id="trip-date" required class="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 bg-gray-50">
                 </div>
-                <div class="form-group">
-                    <label>Kilómetros inicio</label>
-                    <input type="number" id="km_inicio" required>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-1">KM Inicio</label>
+                        <input type="number" id="trip-km-start" required min="0" class="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 bg-gray-50">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-1">KM Final</label>
+                        <input type="number" id="trip-km-end" required min="0" class="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 bg-gray-50">
+                    </div>
                 </div>
-                <div class="form-group">
-                    <label>Kilómetros final</label>
-                    <input type="number" id="km_final" required>
-                </div>
-                <div class="btn-group">
-                    <button type="button" class="btn-cancel" onclick="cerrarModal()">Cancelar</button>
-                    <button type="submit">Guardar</button>
+                <div class="pt-4 flex gap-3">
+                    <button type="button" onclick="closeTripModal()" class="flex-1 py-2.5 rounded-lg bg-gray-100 text-gray-700 font-semibold hover:bg-gray-200 transition-colors">Cancelar</button>
+                    <button type="submit" class="flex-1 py-2.5 rounded-lg bg-indigo-600 text-white font-semibold hover:bg-indigo-700 transition-colors">Guardar Viaje</button>
                 </div>
             </form>
         </div>
     </div>
 
-    <script>
-        // Inicializar datos
-        let viajes = JSON.parse(localStorage.getItem('viajes_autocaravana')) || [];
-        let contadores = JSON.parse(localStorage.getItem('contadores_autocaravana')) || {
-            Ekaitz: 0, Pablo: 0, Dani: 0, Ion: 0
+    <!-- Booking Modal -->
+    <div id="booking-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden items-center justify-center z-50 p-4">
+        <div class="bg-white rounded-2xl p-6 md:p-8 w-full max-w-md shadow-2xl transform transition-all">
+            <h3 class="text-2xl font-bold mb-2 text-gray-800">Reservar Semana</h3>
+            <p class="text-gray-500 mb-6">Usuario: <span id="booking-user-label" class="font-bold text-gray-800"></span></p>
+            
+            <form id="booking-form" class="space-y-4">
+                <input type="hidden" id="booking-user">
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-1">Fecha de Inicio</label>
+                    <input type="date" id="booking-start" required class="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 bg-gray-50">
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-1">Fecha de Fin</label>
+                    <input type="date" id="booking-end" required class="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 bg-gray-50">
+                </div>
+                <div class="pt-4 flex gap-3">
+                    <button type="button" onclick="closeBookingModal()" class="flex-1 py-2.5 rounded-lg bg-gray-100 text-gray-700 font-semibold hover:bg-gray-200 transition-colors">Cancelar</button>
+                    <button type="submit" class="flex-1 py-2.5 rounded-lg bg-gray-800 text-white font-semibold hover:bg-gray-900 transition-colors">Seleccionar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Custom Dialog Modal (Replaces Alert) -->
+    <div id="dialog-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden items-center justify-center z-[60] p-4">
+        <div class="bg-white rounded-xl p-6 w-full max-w-sm shadow-2xl text-center">
+            <div id="dialog-icon" class="text-4xl mb-4">⚠️</div>
+            <h4 class="text-lg font-bold mb-2 text-gray-800" id="dialog-title">Atención</h4>
+            <p class="text-gray-600 mb-6" id="dialog-message">Mensaje</p>
+            <button onclick="closeDialog()" class="w-full py-2.5 rounded-lg bg-indigo-600 text-white font-semibold hover:bg-indigo-700 transition-colors">Aceptar</button>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, addDoc, onSnapshot, query } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Environment Variables Handling
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'autocaravana-app-local';
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {
+            // Mock config to prevent errors if run outside platform without variables
+            apiKey: "mock-key", projectId: "mock-project" 
         };
 
-        // Funciones del Modal
-        function abrirModal() { document.getElementById('modal').style.display = 'flex'; }
-        function cerrarModal() { 
-            document.getElementById('modal').style.display = 'none'; 
-            document.getElementById('viaje-form').reset();
+        let app, db, auth, calendar;
+        const USER_COLORS = {
+            'Ekaitz': '#3b82f6', // Blue
+            'Pablo': '#22c55e',  // Green
+            'Dani': '#f97316',   // Orange
+            'Ion': '#ef4444'     // Red
+        };
+
+        let tripsData = [];
+        let bookingsData = [];
+
+        // Global functions for HTML interaction
+        window.openTripModal = () => {
+            document.getElementById('trip-date').valueAsDate = new Date();
+            document.getElementById('trip-modal').style.display = 'flex';
+        };
+        window.closeTripModal = () => {
+            document.getElementById('trip-modal').style.display = 'none';
+            document.getElementById('trip-form').reset();
+        };
+
+        window.openBookingModal = (user) => {
+            document.getElementById('booking-user').value = user;
+            document.getElementById('booking-user-label').innerText = user;
+            
+            // Set dynamic colors for the button based on user
+            const btn = document.querySelector('#booking-form button[type="submit"]');
+            btn.className = `flex-1 py-2.5 rounded-lg text-white font-semibold transition-colors btn-${user.toLowerCase()}`;
+            
+            document.getElementById('booking-modal').style.display = 'flex';
+        };
+        window.closeBookingModal = () => {
+            document.getElementById('booking-modal').style.display = 'none';
+            document.getElementById('booking-form').reset();
+        };
+
+        window.showDialog = (title, message, icon="⚠️") => {
+            document.getElementById('dialog-title').innerText = title;
+            document.getElementById('dialog-message').innerText = message;
+            document.getElementById('dialog-icon').innerText = icon;
+            document.getElementById('dialog-modal').style.display = 'flex';
+        };
+        window.closeDialog = () => {
+            document.getElementById('dialog-modal').style.display = 'none';
+        };
+
+        // Initialize FullCalendar
+        function initCalendar() {
+            const calendarEl = document.getElementById('calendar');
+            calendar = new FullCalendar.Calendar(calendarEl, {
+                initialView: 'dayGridMonth',
+                locale: 'es',
+                headerToolbar: {
+                    left: 'prev,next today',
+                    center: 'title',
+                    right: 'dayGridMonth,dayGridWeek'
+                },
+                events: [],
+                height: '100%',
+                buttonText: {
+                    today: 'Hoy',
+                    month: 'Mes',
+                    week: 'Semana'
+                }
+            });
+            calendar.render();
         }
 
-        // Guardar viaje
-        function guardarViaje(e) {
+        async function initFirebase() {
+            try {
+                // Initialize Firebase only if we have a valid-looking config
+                if (firebaseConfig.apiKey === "mock-key" && window.location.hostname !== "localhost") {
+                    console.warn("Using mock firebase config. Local mode active.");
+                    initCalendar();
+                    return; // Skip firebase logic if no real config
+                }
+
+                app = initializeApp(firebaseConfig);
+                auth = getAuth(app);
+                db = getFirestore(app);
+
+                // Auth
+                if (typeof __initial_auth_token !== 'undefined') {
+                    await signInWithCustomToken(auth, __initial_auth_token);
+                } else {
+                    await signInAnonymously(auth);
+                }
+
+                if (!auth.currentUser) throw new Error("No user authenticated.");
+
+                // Set up real-time listeners (Rule 1 & Rule 3 applied)
+                const tripsRef = collection(db, 'artifacts', appId, 'public', 'data', 'trips');
+                const bookingsRef = collection(db, 'artifacts', appId, 'public', 'data', 'bookings');
+
+                // Listen to Trips
+                onSnapshot(tripsRef, (snapshot) => {
+                    tripsData = [];
+                    snapshot.forEach(doc => tripsData.push({ id: doc.id, ...doc.data() }));
+                    renderTripsAndKMs();
+                }, (error) => {
+                    console.error("Error fetching trips:", error);
+                    showDialog("Error", "No se pudieron cargar los viajes.", "❌");
+                });
+
+                // Listen to Bookings
+                onSnapshot(bookingsRef, (snapshot) => {
+                    bookingsData = [];
+                    snapshot.forEach(doc => bookingsData.push({ id: doc.id, ...doc.data() }));
+                    renderCalendarEvents();
+                }, (error) => {
+                    console.error("Error fetching bookings:", error);
+                    showDialog("Error", "No se pudieron cargar las reservas.", "❌");
+                });
+
+                initCalendar();
+
+            } catch (error) {
+                console.error("Firebase Init Error:", error);
+                showDialog("Error de Conexión", "La aplicación funcionará sin guardar en la nube.", "🔌");
+                initCalendar();
+            }
+        }
+
+        function renderTripsAndKMs() {
+            // Calculate KMs
+            const kmTotals = { Ekaitz: 0, Pablo: 0, Dani: 0, Ion: 0 };
+            
+            // Sort trips by date descending in JS memory (Rule 2: No complex firestore queries)
+            const sortedTrips = [...tripsData].sort((a, b) => new Date(b.date) - new Date(a.date));
+            
+            const tbody = document.getElementById('trip-history');
+            const noTripsMsg = document.getElementById('no-trips-msg');
+            tbody.innerHTML = '';
+
+            if (sortedTrips.length === 0) {
+                noTripsMsg.style.display = 'block';
+            } else {
+                noTripsMsg.style.display = 'none';
+                sortedTrips.forEach(trip => {
+                    // Update user total KMs
+                    if (kmTotals[trip.user] !== undefined) {
+                        kmTotals[trip.user] += trip.distance;
+                    }
+
+                    // Render table row
+                    const tr = document.createElement('tr');
+                    
+                    // Format date
+                    const d = new Date(trip.date);
+                    const dateStr = `${d.getDate().toString().padStart(2,'0')}/${(d.getMonth()+1).toString().padStart(2,'0')}/${d.getFullYear()}`;
+
+                    tr.innerHTML = `
+                        <td class="px-4 py-3 font-medium text-gray-900 whitespace-nowrap">${dateStr}</td>
+                        <td class="px-4 py-3">
+                            <span class="font-bold text-${trip.user.toLowerCase()}">${trip.user}</span><br>
+                            <span class="text-xs text-gray-500">${trip.destination}</span>
+                        </td>
+                        <td class="px-4 py-3 text-right font-bold text-gray-700">+${trip.distance} km</td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            }
+
+            // Update UI Counters
+            for (const user in kmTotals) {
+                const el = document.getElementById(`km-${user}`);
+                if (el) el.innerText = kmTotals[user];
+            }
+        }
+
+        function renderCalendarEvents() {
+            if (!calendar) return;
+            
+            // Clear existing events
+            calendar.removeAllEvents();
+
+            // Add events from Firestore
+            bookingsData.forEach(booking => {
+                // FullCalendar exclusive end date logic: Add 1 day to end date for full day inclusion
+                let endDate = new Date(booking.endDate);
+                endDate.setDate(endDate.getDate() + 1);
+                const endDateString = endDate.toISOString().split('T')[0];
+
+                calendar.addEvent({
+                    title: `🚐 ${booking.user}`,
+                    start: booking.startDate,
+                    end: endDateString,
+                    color: USER_COLORS[booking.user] || '#6b7280',
+                    allDay: true
+                });
+            });
+        }
+
+        document.getElementById('trip-form').addEventListener('submit', async (e) => {
             e.preventDefault();
-            
-            const usuario = document.getElementById('usuario').value;
-            const destino = document.getElementById('destino').value;
-            const fecha = document.getElementById('fecha').value;
-            const kmInicio = parseInt(document.getElementById('km_inicio').value);
-            const kmFinal = parseInt(document.getElementById('km_final').value);
-            
-            if (kmFinal <= kmInicio) {
-                alert("Los kilómetros finales deben ser mayores que los iniciales.");
+            if (!auth || !auth.currentUser) return showDialog("Error", "No estás conectado.", "❌");
+
+            const user = document.getElementById('trip-user').value;
+            const destination = document.getElementById('trip-destination').value;
+            const date = document.getElementById('trip-date').value;
+            const kmStart = parseInt(document.getElementById('trip-km-start').value);
+            const kmEnd = parseInt(document.getElementById('trip-km-end').value);
+
+            if (kmEnd <= kmStart) {
+                showDialog("Error en Kilómetros", "Los kilómetros finales deben ser mayores que los iniciales.", "⚠️");
                 return;
             }
 
-            const distancia = kmFinal - kmInicio;
-
-            // Guardar viaje
-            const nuevoViaje = { fecha, usuario, destino, distancia };
-            viajes.push(nuevoViaje);
+            const distance = kmEnd - kmStart;
             
-            // Actualizar contador del usuario
-            contadores[usuario] += distancia;
+            try {
+                const tripsRef = collection(db, 'artifacts', appId, 'public', 'data', 'trips');
+                await addDoc(tripsRef, {
+                    user,
+                    destination,
+                    date,
+                    kmStart,
+                    kmEnd,
+                    distance,
+                    timestamp: new Date().toISOString()
+                });
+                closeTripModal();
+                showDialog("¡Éxito!", `Se han añadido ${distance} km a ${user}.`, "✅");
+            } catch (error) {
+                console.error("Error saving trip:", error);
+                showDialog("Error", "No se pudo guardar el viaje.", "❌");
+            }
+        });
 
-            // Guardar en LocalStorage
-            localStorage.setItem('viajes_autocaravana', JSON.stringify(viajes));
-            localStorage.setItem('contadores_autocaravana', JSON.stringify(contadores));
+        document.getElementById('booking-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            if (!auth || !auth.currentUser) return showDialog("Error", "No estás conectado.", "❌");
 
-            actualizarUI();
-            cerrarModal();
-        }
+            const user = document.getElementById('booking-user').value;
+            const startDate = document.getElementById('booking-start').value;
+            const endDate = document.getElementById('booking-end').value;
 
-        // Actualizar la interfaz (Contadores y Tabla)
-        function actualizarUI() {
-            // Actualizar contadores
-            ['Ekaitz', 'Pablo', 'Dani', 'Ion'].forEach(user => {
-                document.getElementById(`km-${user}`).innerText = contadores[user];
-            });
+            if (new Date(endDate) < new Date(startDate)) {
+                showDialog("Error en Fechas", "La fecha de fin no puede ser anterior a la de inicio.", "⚠️");
+                return;
+            }
 
-            // Actualizar tabla (ordenada por fecha más reciente)
-            const tbody = document.getElementById('tabla-viajes');
-            tbody.innerHTML = '';
-            
-            const viajesOrdenados = [...viajes].sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
-            
-            viajesOrdenados.forEach(v => {
-                const tr = document.createElement('tr');
-                tr.innerHTML = `
-                    <td>${v.fecha}</td>
-                    <td><strong>${v.usuario}</strong></td>
-                    <td>${v.destino}</td>
-                    <td>${v.distancia} km</td>
-                `;
-                tbody.appendChild(tr);
-            });
-        }
+            try {
+                const bookingsRef = collection(db, 'artifacts', appId, 'public', 'data', 'bookings');
+                await addDoc(bookingsRef, {
+                    user,
+                    startDate,
+                    endDate,
+                    timestamp: new Date().toISOString()
+                });
+                closeBookingModal();
+                showDialog("¡Reservado!", `${user} ha reservado la autocaravana.`, "📅");
+            } catch (error) {
+                console.error("Error saving booking:", error);
+                showDialog("Error", "No se pudo guardar la reserva.", "❌");
+            }
+        });
 
-        // Cargar datos al iniciar
-        actualizarUI();
+        // Initialize App on Load
+        document.addEventListener('DOMContentLoaded', () => {
+            initFirebase();
+        });
+
     </script>
 </body>
 </html>
