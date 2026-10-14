@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Autocaravana Compartida</title>
+    <style>
+        body { font-family: system-ui, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; background: #f4f4f9; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; margin-bottom: 20px; }
+        .card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); text-align: center; }
+        .card h3 { margin: 0 0 10px 0; color: #333; }
+        .card .km { font-size: 24px; font-weight: bold; color: #0066cc; }
+        button { background: #0066cc; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; font-size: 16px; width: 100%; }
+        button:hover { background: #0052a3; }
+        
+        /* Modal Styles */
+        #modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); align-items: center; justify-content: center; }
+        .modal-content { background: white; padding: 30px; border-radius: 8px; width: 90%; max-width: 400px; }
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; margin-bottom: 5px; font-weight: bold; }
+        .form-group input, .form-group select { width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
+        .btn-group { display: flex; gap: 10px; margin-top: 20px; }
+        .btn-cancel { background: #ccc; color: #333; }
+        .btn-cancel:hover { background: #bbb; }
+        
+        /* Tabla de viajes */
+        table { width: 100%; background: white; border-collapse: collapse; margin-top: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #ddd; }
+        th { background-color: #f8f9fa; }
+    </style>
+</head>
+<body>
+
+    <h1>🚐 Uso de la Autocaravana</h1>
+
+    <!-- Contadores de Kilómetros -->
+    <div class="grid">
+        <div class="card"><h3>Ekaitz</h3><div class="km" id="km-Ekaitz">0</div><small>km totales</small></div>
+        <div class="card"><h3>Pablo</h3><div class="km" id="km-Pablo">0</div><small>km totales</small></div>
+        <div class="card"><h3>Dani</h3><div class="km" id="km-Dani">0</div><small>km totales</small></div>
+        <div class="card"><h3>Ion</h3><div class="km" id="km-Ion">0</div><small>km totales</small></div>
+    </div>
+
+    <button onclick="abrirModal()">+ Añadir viaje</button>
+
+    <!-- Historial / Calendario de Viajes -->
+    <h2 style="margin-top: 30px;">Historial de Viajes</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Fecha</th>
+                <th>Usuario</th>
+                <th>Destino</th>
+                <th>Recorrido</th>
+            </tr>
+        </thead>
+        <tbody id="tabla-viajes">
+            <!-- Los viajes se cargarán aquí -->
+        </tbody>
+    </table>
+
+    <!-- Formulario Modal -->
+    <div id="modal">
+        <div class="modal-content">
+            <h2 style="margin-top:0;">Nuevo Viaje</h2>
+            <form id="viaje-form" onsubmit="guardarViaje(event)">
+                <div class="form-group">
+                    <label>Usuario</label>
+                    <select id="usuario" required>
+                        <option value="Ekaitz">Ekaitz</option>
+                        <option value="Pablo">Pablo</option>
+                        <option value="Dani">Dani</option>
+                        <option value="Ion">Ion</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Destino</label>
+                    <input type="text" id="destino" required>
+                </div>
+                <div class="form-group">
+                    <label>Fecha</label>
+                    <input type="date" id="fecha" required>
+                </div>
+                <div class="form-group">
+                    <label>Kilómetros inicio</label>
+                    <input type="number" id="km_inicio" required>
+                </div>
+                <div class="form-group">
+                    <label>Kilómetros final</label>
+                    <input type="number" id="km_final" required>
+                </div>
+                <div class="btn-group">
+                    <button type="button" class="btn-cancel" onclick="cerrarModal()">Cancelar</button>
+                    <button type="submit">Guardar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // Inicializar datos
+        let viajes = JSON.parse(localStorage.getItem('viajes_autocaravana')) || [];
+        let contadores = JSON.parse(localStorage.getItem('contadores_autocaravana')) || {
+            Ekaitz: 0, Pablo: 0, Dani: 0, Ion: 0
+        };
+
+        // Funciones del Modal
+        function abrirModal() { document.getElementById('modal').style.display = 'flex'; }
+        function cerrarModal() { 
+            document.getElementById('modal').style.display = 'none'; 
+            document.getElementById('viaje-form').reset();
+        }
+
+        // Guardar viaje
+        function guardarViaje(e) {
+            e.preventDefault();
+            
+            const usuario = document.getElementById('usuario').value;
+            const destino = document.getElementById('destino').value;
+            const fecha = document.getElementById('fecha').value;
+            const kmInicio = parseInt(document.getElementById('km_inicio').value);
+            const kmFinal = parseInt(document.getElementById('km_final').value);
+            
+            if (kmFinal <= kmInicio) {
+                alert("Los kilómetros finales deben ser mayores que los iniciales.");
+                return;
+            }
+
+            const distancia = kmFinal - kmInicio;
+
+            // Guardar viaje
+            const nuevoViaje = { fecha, usuario, destino, distancia };
+            viajes.push(nuevoViaje);
+            
+            // Actualizar contador del usuario
+            contadores[usuario] += distancia;
+
+            // Guardar en LocalStorage
+            localStorage.setItem('viajes_autocaravana', JSON.stringify(viajes));
+            localStorage.setItem('contadores_autocaravana', JSON.stringify(contadores));
+
+            actualizarUI();
+            cerrarModal();
+        }
+
+        // Actualizar la interfaz (Contadores y Tabla)
+        function actualizarUI() {
+            // Actualizar contadores
+            ['Ekaitz', 'Pablo', 'Dani', 'Ion'].forEach(user => {
+                document.getElementById(`km-${user}`).innerText = contadores[user];
+            });
+
+            // Actualizar tabla (ordenada por fecha más reciente)
+            const tbody = document.getElementById('tabla-viajes');
+            tbody.innerHTML = '';
+            
+            const viajesOrdenados = [...viajes].sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
+            
+            viajesOrdenados.forEach(v => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${v.fecha}</td>
+                    <td><strong>${v.usuario}</strong></td>
+                    <td>${v.destino}</td>
+                    <td>${v.distancia} km</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        // Cargar datos al iniciar
+        actualizarUI();
+    </script>
+</body>
+</html>
