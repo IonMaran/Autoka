@@ -54,4 +54,332 @@
         
         @media (max-width: 600px) {
             th, td { padding: 10px; font-size: 14px; }
-            .item-especial { flex
+            .item-especial { flex-direction: column; align-items: flex-start; gap: 10px; }
+            .controles-especial { width: 100%; display: flex; justify-content: space-between; gap: 10px; align-items: center; }
+            .controles-especial select { flex-grow: 1; }
+        }
+
+        /* Modales */
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); align-items: center; justify-content: center; z-index: 1000; overflow-y: auto; }
+        .modal-content { background: white; padding: 30px; border-radius: 12px; width: 90%; max-width: 400px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); margin: auto; max-height: 90vh; overflow-y: auto;}
+        .modal h2 { margin-top: 0; color: #333; }
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; margin-bottom: 5px; font-weight: bold; color: #555;}
+        .form-group input, .form-group select { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; font-size: 15px;}
+        .modal-btns { display: flex; gap: 10px; margin-top: 25px; }
+        .modal-btns button { flex: 1; }
+        .btn-cancel { background: #e0e0e0 !important; color: #333 !important; }
+        .btn-guardar { background: #28a745; }
+    </style>
+</head>
+<body>
+
+    <h1>🚐 Autocaravana Compartida</h1>
+
+    <!-- Contadores de Kilómetros -->
+    <div class="grid">
+        <div class="card" id="card-Ekaitz"><h3>Ekaitz</h3><div class="km" id="km-Ekaitz" style="color: #3788d8;">0</div><small>km totales</small></div>
+        <div class="card" id="card-Pablo"><h3>Pablo</h3><div class="km" id="km-Pablo" style="color: #28a745;">0</div><small>km totales</small></div>
+        <div class="card" id="card-Dani"><h3>Dani</h3><div class="km" id="km-Dani" style="color: #fd7e14;">0</div><small>km totales</small></div>
+        <div class="card" id="card-Ion"><h3>Ion</h3><div class="km" id="km-Ion" style="color: #dc3545;">0</div><small>km totales</small></div>
+    </div>
+
+    <!-- Botones de Acción -->
+    <div class="btn-group-main">
+        <button id="btn-viaje" onclick="abrirModal('modal-viaje')">+ Añadir Viaje (Km)</button>
+        <button id="btn-reserva" onclick="abrirModal('modal-reserva')">📅 Elegir Semana Normal</button>
+    </div>
+
+    <!-- Panel de Semanas Especiales -->
+    <div id="panel-especiales">
+        <div class="header-especiales">
+            <h2>🌟 Semanas Especiales</h2>
+            <button id="btn-add-especial" onclick="abrirModal('modal-especial')">+ Añadir Periodo</button>
+        </div>
+        <div class="lista-especiales" id="contenedor-especiales">
+            <p style="color: #888; text-align: center; margin: 10px 0;">No hay semanas especiales creadas.</p>
+        </div>
+    </div>
+
+    <!-- Calendario -->
+    <div id="calendar"></div>
+
+    <!-- Historial de Viajes -->
+    <h2>Historial de Viajes</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Fechas</th>
+                <th>Usuario</th>
+                <th>Destino</th>
+                <th>Kilómetros</th>
+                <th style="text-align:center;">Acción</th>
+            </tr>
+        </thead>
+        <tbody id="tabla-viajes">
+            <tr><td colspan="5" style="text-align: center;">Cargando datos...</td></tr>
+        </tbody>
+    </table>
+
+    <!-- Modal Añadir Viaje -->
+    <div id="modal-viaje" class="modal">
+        <div class="modal-content">
+            <h2>Nuevo Viaje (Km)</h2>
+            <form id="form-viaje">
+                <div class="form-group"><label>Usuario</label><select id="v-usuario" required><option value="Ekaitz">Ekaitz</option><option value="Pablo">Pablo</option><option value="Dani">Dani</option><option value="Ion">Ion</option></select></div>
+                <div class="form-group"><label>Destino</label><input type="text" id="v-destino" required></div>
+                <div class="form-group"><label>Fecha de inicio</label><input type="date" id="v-fecha-inicio" required></div>
+                <div class="form-group"><label>Fecha de fin</label><input type="date" id="v-fecha-fin" required></div>
+                <div class="form-group"><label>Kilómetros inicio</label><input type="number" id="v-kminicio" required></div>
+                <div class="form-group"><label>Kilómetros final</label><input type="number" id="v-kmfinal" required></div>
+                <div class="modal-btns"><button type="button" class="btn-cancel" onclick="cerrarModal('modal-viaje')">Cancelar</button><button type="submit" class="btn-guardar">Guardar Viaje</button></div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal Elegir Semana -->
+    <div id="modal-reserva" class="modal">
+        <div class="modal-content">
+            <h2>Reservar Semana</h2>
+            <form id="form-reserva">
+                <div class="form-group"><label>Usuario</label><select id="r-usuario" required><option value="Ekaitz">Ekaitz</option><option value="Pablo">Pablo</option><option value="Dani">Dani</option><option value="Ion">Ion</option></select></div>
+                <div class="form-group"><label>Fecha de inicio</label><input type="date" id="r-inicio" required></div>
+                <div class="form-group"><label>Fecha de fin</label><input type="date" id="r-fin" required></div>
+                <div class="modal-btns"><button type="button" class="btn-cancel" onclick="cerrarModal('modal-reserva')">Cancelar</button><button type="submit" class="btn-guardar">Guardar Semana</button></div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal Semana Especial -->
+    <div id="modal-especial" class="modal">
+        <div class="modal-content">
+            <h2>Crear Semana Especial</h2>
+            <form id="form-especial">
+                <div class="form-group"><label>Título (Ej: Semana Santa, Puente Pilar)</label><input type="text" id="e-titulo" required></div>
+                <div class="form-group"><label>Fecha de inicio</label><input type="date" id="e-inicio" required></div>
+                <div class="form-group"><label>Fecha de fin</label><input type="date" id="e-fin" required></div>
+                <div class="modal-btns"><button type="button" class="btn-cancel" onclick="cerrarModal('modal-especial')">Cancelar</button><button type="submit" class="btn-guardar">Crear Periodo</button></div>
+            </form>
+        </div>
+    </div>
+
+    <!-- SCRIPT 1: INTERFAZ Y MODALES -->
+    <script>
+        function abrirModal(id) { document.getElementById(id).style.display = 'flex'; }
+        function cerrarModal(id) {
+            document.getElementById(id).style.display = 'none';
+            if(id === 'modal-viaje') document.getElementById('form-viaje').reset();
+            if(id === 'modal-reserva') document.getElementById('form-reserva').reset();
+            if(id === 'modal-especial') document.getElementById('form-especial').reset();
+        }
+    </script>
+
+    <!-- SCRIPT 2: BASE DE DATOS Y LÓGICA -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, doc, updateDoc, deleteDoc } 
+        from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyDmI43THrBJadjFKDv5Cj0z1EubNJdajGY",
+            authDomain: "autocaravana-de45c.firebaseapp.com",
+            projectId: "autocaravana-de45c",
+            storageBucket: "autocaravana-de45c.firebasestorage.app",
+            messagingSenderId: "471434389729",
+            appId: "1:471434389729:web:19b9e36e02c9a46641afa0",
+            measurementId: "G-WT34TWDGHZ"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        const userColors = { Ekaitz: '#3788d8', Pablo: '#28a745', Dani: '#fd7e14', Ion: '#dc3545' };
+        
+        let eventosCalendario = { reservas: [], especiales: [] };
+        let calendar;
+
+        function refrescarCalendario() {
+            if(calendar) {
+                calendar.removeAllEvents();
+                calendar.addEventSource([...eventosCalendario.reservas, ...eventosCalendario.especiales]);
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const calendarEl = document.getElementById('calendar');
+            calendar = new FullCalendar.Calendar(calendarEl, {
+                initialView: 'dayGridMonth',
+                firstDay: 1,
+                locale: 'es',
+                headerToolbar: { left: 'prev,next today', center: 'title', right: 'dayGridMonth' },
+                events: [] 
+            });
+            calendar.render();
+        });
+
+        // 1. Cargar Reservas Normales
+        const qReservas = query(collection(db, "reservas"));
+        onSnapshot(qReservas, (snapshot) => {
+            eventosCalendario.reservas = [];
+            snapshot.forEach((documento) => {
+                const data = documento.data();
+                const endDate = new Date(data.fin);
+                endDate.setDate(endDate.getDate() + 1);
+                eventosCalendario.reservas.push({
+                    id: documento.id, title: `🚐 ${data.usuario}`, start: data.inicio, end: endDate.toISOString().split('T')[0], color: userColors[data.usuario], allDay: true
+                });
+            });
+            refrescarCalendario();
+        });
+
+        // 2. Cargar Semanas Especiales CON BOTÓN DE BORRAR
+        const qEspeciales = query(collection(db, "semanas_especiales"), orderBy("inicio", "asc"));
+        onSnapshot(qEspeciales, (snapshot) => {
+            const contenedor = document.getElementById('contenedor-especiales');
+            contenedor.innerHTML = '';
+            eventosCalendario.especiales = [];
+            let hayEspeciales = false;
+
+            snapshot.forEach((documento) => {
+                hayEspeciales = true;
+                const data = documento.data();
+                const id = documento.id;
+                const colorFondo = data.usuario ? userColors[data.usuario] : '#cccccc';
+
+                const div = document.createElement('div');
+                div.className = 'item-especial';
+                div.style.borderLeftColor = colorFondo;
+                div.innerHTML = `
+                    <div>
+                        <strong>🌟 ${data.titulo}</strong>
+                        <small>Del ${data.inicio} al ${data.fin}</small>
+                    </div>
+                    <div class="controles-especial">
+                        <select class="selector-usuario" style="color: ${data.usuario ? colorFondo : '#333'}; padding: 8px; border-radius: 6px; border: 1px solid #ccc; font-weight: bold; font-size: 14px; cursor: pointer;">
+                            <option value="">-- Sin asignar --</option>
+                            <option value="Ekaitz" ${data.usuario === 'Ekaitz' ? 'selected' : ''}>Ekaitz</option>
+                            <option value="Pablo" ${data.usuario === 'Pablo' ? 'selected' : ''}>Pablo</option>
+                            <option value="Dani" ${data.usuario === 'Dani' ? 'selected' : ''}>Dani</option>
+                            <option value="Ion" ${data.usuario === 'Ion' ? 'selected' : ''}>Ion</option>
+                        </select>
+                        <button class="btn-borrar" onclick="borrarEspecial('${id}')" title="Borrar periodo">🗑️</button>
+                    </div>
+                `;
+                contenedor.appendChild(div);
+
+                // Evento para asignar usuario
+                div.querySelector('.selector-usuario').addEventListener('change', async (e) => {
+                    const nuevoUsuario = e.target.value;
+                    const docRef = doc(db, "semanas_especiales", id);
+                    try { await updateDoc(docRef, { usuario: nuevoUsuario }); } 
+                    catch (error) { alert("Error al asignar: " + error.message); }
+                });
+
+                const endDate = new Date(data.fin);
+                endDate.setDate(endDate.getDate() + 1);
+                
+                eventosCalendario.especiales.push({
+                    id: id, title: data.usuario ? `🚐 ${data.usuario} (${data.titulo})` : `[Libre] ${data.titulo}`, start: data.inicio, end: endDate.toISOString().split('T')[0], color: colorFondo, allDay: true
+                });
+            });
+
+            if(!hayEspeciales) contenedor.innerHTML = '<p style="color: #888; text-align: center; margin: 10px 0;">No hay semanas especiales creadas.</p>';
+            refrescarCalendario();
+        });
+
+        // 3. Cargar Historial Viajes y BORRAR VIAJES
+        const qViajes = query(collection(db, "viajes"), orderBy("timestamp", "desc"));
+        onSnapshot(qViajes, (snapshot) => {
+            const tbody = document.getElementById('tabla-viajes');
+            tbody.innerHTML = '';
+            const contadores = { Ekaitz: 0, Pablo: 0, Dani: 0, Ion: 0 };
+            let viajesRegistrados = 0;
+
+            snapshot.forEach((documento) => {
+                const v = documento.data();
+                viajesRegistrados++;
+                if(contadores[v.usuario] !== undefined) contadores[v.usuario] += v.distancia;
+
+                const textoFecha = v.fechaInicio && v.fechaFin ? `${v.fechaInicio}<br>al<br>${v.fechaFin}` : v.fecha;
+                const tr = document.createElement('tr');
+                
+                tr.innerHTML = `
+                    <td>${textoFecha}</td>
+                    <td><strong style="color:${userColors[v.usuario]}">${v.usuario}</strong></td>
+                    <td>${v.destino}</td>
+                    <td><b>${v.distancia}</b> km</td>
+                    <td style="text-align:center;">
+                        <button class="btn-borrar" onclick="borrarViaje('${documento.id}')" title="Borrar viaje">🗑️</button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            if(viajesRegistrados === 0) tbody.innerHTML = '<tr><td colspan="5" style="text-align: center;">Aún no hay viajes registrados.</td></tr>';
+
+            Object.keys(contadores).forEach(user => {
+                const el = document.getElementById(`km-${user}`);
+                if(el) el.innerText = contadores[user];
+            });
+        });
+
+        // FUNCIONES GLOBALES PARA BORRAR DESDE EL HTML
+        window.borrarViaje = async (id) => {
+            if(confirm("¿Estás seguro de que quieres borrar este viaje? Se restarán los kilómetros del contador.")) {
+                try { await deleteDoc(doc(db, "viajes", id)); } 
+                catch (error) { alert("Error al borrar: " + error.message); }
+            }
+        };
+
+        window.borrarEspecial = async (id) => {
+            if(confirm("¿Estás seguro de que quieres borrar este periodo especial?")) {
+                try { await deleteDoc(doc(db, "semanas_especiales", id)); } 
+                catch (error) { alert("Error al borrar: " + error.message); }
+            }
+        };
+
+        // 4. Guardar Formularios
+        document.getElementById('form-viaje').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const usuario = document.getElementById('v-usuario').value;
+            const destino = document.getElementById('v-destino').value;
+            const fechaInicio = document.getElementById('v-fecha-inicio').value;
+            const fechaFin = document.getElementById('v-fecha-fin').value;
+            const kmInicio = parseInt(document.getElementById('v-kminicio').value);
+            const kmFinal = parseInt(document.getElementById('v-kmfinal').value);
+            
+            if (new Date(fechaFin) < new Date(fechaInicio)) return alert("La fecha de fin no puede ser anterior a la de inicio.");
+            if (kmFinal <= kmInicio) return alert("Los kilómetros finales deben ser mayores que los iniciales.");
+            
+            try {
+                await addDoc(collection(db, "viajes"), { usuario, destino, fechaInicio, fechaFin, distancia: kmFinal - kmInicio, timestamp: new Date() });
+                cerrarModal('modal-viaje');
+            } catch (error) { alert("Error al guardar: " + error.message); }
+        });
+
+        document.getElementById('form-reserva').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const usuario = document.getElementById('r-usuario').value;
+            const inicio = document.getElementById('r-inicio').value;
+            const fin = document.getElementById('r-fin').value;
+            if (new Date(fin) < new Date(inicio)) return alert("La fecha de fin no puede ser anterior a la de inicio.");
+            try {
+                await addDoc(collection(db, "reservas"), { usuario, inicio, fin });
+                cerrarModal('modal-reserva');
+            } catch (error) { alert("Error al guardar: " + error.message); }
+        });
+
+        document.getElementById('form-especial').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const titulo = document.getElementById('e-titulo').value;
+            const inicio = document.getElementById('e-inicio').value;
+            const fin = document.getElementById('e-fin').value;
+            if (new Date(fin) < new Date(inicio)) return alert("La fecha de fin no puede ser anterior a la de inicio.");
+            try {
+                await addDoc(collection(db, "semanas_especiales"), { titulo, inicio, fin, usuario: "" });
+                cerrarModal('modal-especial');
+            } catch (error) { alert("Error al crear semana especial: " + error.message); }
+        });
+    </script>
+</body>
+</html>
