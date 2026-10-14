@@ -42,8 +42,8 @@
         }
 
         /* Modales */
-        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); align-items: center; justify-content: center; z-index: 1000; }
-        .modal-content { background: white; padding: 30px; border-radius: 12px; width: 90%; max-width: 400px; box-shadow: 0 10px 25px rgba(0,0,0,0.2);}
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); align-items: center; justify-content: center; z-index: 1000; overflow-y: auto; }
+        .modal-content { background: white; padding: 30px; border-radius: 12px; width: 90%; max-width: 400px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); margin: auto; max-height: 90vh; overflow-y: auto;}
         .modal h2 { margin-top: 0; color: #333; }
         .form-group { margin-bottom: 15px; }
         .form-group label { display: block; margin-bottom: 5px; font-weight: bold; color: #555;}
@@ -80,7 +80,7 @@
     <table>
         <thead>
             <tr>
-                <th>Fecha</th>
+                <th>Fechas</th>
                 <th>Usuario</th>
                 <th>Destino</th>
                 <th>Kilómetros</th>
@@ -110,8 +110,12 @@
                     <input type="text" id="v-destino" placeholder="Ej. Pirineos, Landas..." required>
                 </div>
                 <div class="form-group">
-                    <label>Fecha del viaje</label>
-                    <input type="date" id="v-fecha" required>
+                    <label>Fecha de inicio</label>
+                    <input type="date" id="v-fecha-inicio" required>
+                </div>
+                <div class="form-group">
+                    <label>Fecha de fin</label>
+                    <input type="date" id="v-fecha-fin" required>
                 </div>
                 <div class="form-group">
                     <label>Kilómetros inicio</label>
@@ -159,7 +163,7 @@
         </div>
     </div>
 
-    <!-- SCRIPT 1: INTERFAZ (Funciona siempre, aunque Firebase falle) -->
+    <!-- SCRIPT 1: INTERFAZ -->
     <script>
         function abrirModal(id) { document.getElementById(id).style.display = 'flex'; }
         function cerrarModal(id) {
@@ -206,14 +210,14 @@
             calendar.render();
         });
 
-        // Cargar Reservas con control de errores
+        // Cargar Reservas
         const qReservas = query(collection(db, "reservas"));
         onSnapshot(qReservas, (snapshot) => {
             const eventos = [];
             snapshot.forEach((doc) => {
                 const data = doc.data();
                 const endDate = new Date(data.fin);
-                endDate.setDate(endDate.getDate() + 1);
+                endDate.setDate(endDate.getDate() + 1); // +1 necesario para FullCalendar
                 eventos.push({
                     id: doc.id, title: `🚐 ${data.usuario}`, start: data.inicio, end: endDate.toISOString().split('T')[0], color: userColors[data.usuario], allDay: true
                 });
@@ -227,8 +231,8 @@
             alert("Error de permisos en Firebase. Revisa las reglas de Firestore.");
         });
 
-        // Cargar Viajes con control de errores
-        const qViajes = query(collection(db, "viajes"), orderBy("fecha", "desc"));
+        // Cargar Viajes
+        const qViajes = query(collection(db, "viajes"), orderBy("timestamp", "desc")); // Ordenado por cuándo se metió
         onSnapshot(qViajes, (snapshot) => {
             const tbody = document.getElementById('tabla-viajes');
             tbody.innerHTML = '';
@@ -241,8 +245,11 @@
                 viajesRegistrados++;
                 if(contadores[v.usuario] !== undefined) contadores[v.usuario] += v.distancia;
 
+                // Soporta viajes antiguos (una sola fecha) y los nuevos (fecha inicio y fin)
+                const textoFecha = v.fechaInicio && v.fechaFin ? `${v.fechaInicio}<br>al<br>${v.fechaFin}` : v.fecha;
+
                 const tr = document.createElement('tr');
-                tr.innerHTML = `<td>${v.fecha}</td><td><strong style="color:${userColors[v.usuario]}">${v.usuario}</strong></td><td>${v.destino}</td><td><b>${v.distancia}</b> km</td>`;
+                tr.innerHTML = `<td>${textoFecha}</td><td><strong style="color:${userColors[v.usuario]}">${v.usuario}</strong></td><td>${v.destino}</td><td><b>${v.distancia}</b> km</td>`;
                 tbody.appendChild(tr);
             });
 
@@ -259,19 +266,28 @@
             document.getElementById('tabla-viajes').innerHTML = `<tr><td colspan="4" style="color:red; text-align: center;">Error de Firebase: ${error.message} <br><br>🚨 Probablemente la base de datos no está creada o las Reglas no están en true.</td></tr>`;
         });
 
-        // Enviar nuevo Viaje
+        // Enviar nuevo Viaje (Modificado con Inicio y Fin)
         document.getElementById('form-viaje').addEventListener('submit', async (e) => {
             e.preventDefault();
             const usuario = document.getElementById('v-usuario').value;
             const destino = document.getElementById('v-destino').value;
-            const fecha = document.getElementById('v-fecha').value;
+            const fechaInicio = document.getElementById('v-fecha-inicio').value;
+            const fechaFin = document.getElementById('v-fecha-fin').value;
             const kmInicio = parseInt(document.getElementById('v-kminicio').value);
             const kmFinal = parseInt(document.getElementById('v-kmfinal').value);
             
+            if (new Date(fechaFin) < new Date(fechaInicio)) return alert("La fecha de fin no puede ser anterior a la de inicio.");
             if (kmFinal <= kmInicio) return alert("Los kilómetros finales deben ser mayores que los iniciales.");
             
             try {
-                await addDoc(collection(db, "viajes"), { usuario, destino, fecha, distancia: kmFinal - kmInicio, timestamp: new Date() });
+                await addDoc(collection(db, "viajes"), { 
+                    usuario, 
+                    destino, 
+                    fechaInicio, 
+                    fechaFin, 
+                    distancia: kmFinal - kmInicio, 
+                    timestamp: new Date() 
+                });
                 cerrarModal('modal-viaje');
             } catch (error) { alert("Error al guardar: " + error.message); }
         });
