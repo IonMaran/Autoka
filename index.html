@@ -3,15 +3,59 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Autocaravana Compartida</title>
+    <title>Autoka</title>
     
     <!-- Librería del Calendario -->
     <script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js'></script>
     
     <style>
         body { font-family: system-ui, sans-serif; max-width: 1000px; margin: 0 auto; padding: 20px; background: #f4f4f9; }
-        h1 { text-align: center; color: #333; }
         
+        /* Título Principal */
+        h1 { text-align: center; color: #333; margin-bottom: 5px; font-size: 36px;}
+        
+        /* Cuentakilómetros Analógico */
+        .odometer-wrapper { text-align: center; margin-bottom: 30px; }
+        .odometer-container {
+            display: inline-flex;
+            background: #111;
+            border: 4px solid #444;
+            border-radius: 6px;
+            padding: 3px;
+            box-shadow: inset 0 3px 6px rgba(0,0,0,1), 0 4px 8px rgba(0,0,0,0.2);
+            align-items: center;
+        }
+        .odometer-digit {
+            background: linear-gradient(to bottom, #111 0%, #333 40%, #333 60%, #111 100%);
+            color: #fff;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 38px;
+            font-weight: bold;
+            padding: 5px 8px;
+            margin: 0 1px;
+            border-radius: 2px;
+            box-shadow: inset 0 1px 4px rgba(0,0,0,0.8);
+            text-shadow: 0 1px 2px rgba(0,0,0,0.8);
+            border-top: 1px solid #000;
+            border-bottom: 1px solid #000;
+            line-height: 1;
+        }
+        /* El último dígito suele ir en blanco en los coches para los hectómetros, pero aquí lo haremos blanco completo para resaltar */
+        .odometer-digit:last-child {
+            background: linear-gradient(to bottom, #ddd 0%, #fff 40%, #fff 60%, #ddd 100%);
+            color: #000;
+            text-shadow: none;
+        }
+        .odometer-label {
+            display: inline-block;
+            margin-left: 10px;
+            font-size: 20px;
+            font-weight: bold;
+            color: #555;
+            text-transform: uppercase;
+        }
+        .odometer-subtitle { display: block; font-size: 12px; color: #888; margin-top: 5px; }
+
         /* Contadores */
         .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px; }
         .card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); text-align: center; border-top: 5px solid; }
@@ -39,7 +83,6 @@
         .item-especial strong { font-size: 16px; display: block; color: #333; }
         .item-especial small { color: #666; }
         .item-especial select { padding: 8px; border-radius: 6px; border: 1px solid #ccc; font-weight: bold; font-size: 14px; cursor: pointer;}
-        
         .btn-borrar { background: none; border: none; font-size: 20px; cursor: pointer; color: #dc3545; box-shadow: none; padding: 5px; }
         .btn-borrar:hover { transform: scale(1.2); }
 
@@ -74,7 +117,21 @@
 </head>
 <body>
 
-    <h1>🚐 Autocaravana Compartida</h1>
+    <h1>🚐 Autoka</h1>
+    
+    <!-- NUEVO: ODOMETER (Cuentakilómetros Analógico) -->
+    <div class="odometer-wrapper">
+        <div class="odometer-container" id="odometer">
+            <span class="odometer-digit">0</span>
+            <span class="odometer-digit">0</span>
+            <span class="odometer-digit">0</span>
+            <span class="odometer-digit">0</span>
+            <span class="odometer-digit">0</span>
+            <span class="odometer-digit">0</span>
+        </div>
+        <span class="odometer-label">KM</span>
+        <span class="odometer-subtitle">Última lectura guardada</span>
+    </div>
 
     <!-- Contadores de Kilómetros -->
     <div class="grid">
@@ -172,6 +229,21 @@
             if(id === 'modal-reserva') document.getElementById('form-reserva').reset();
             if(id === 'modal-especial') document.getElementById('form-especial').reset();
         }
+
+        // Función para actualizar los rodillos del cuentakilómetros
+        function actualizarOdometer(km) {
+            // Convierte el número en texto y añade ceros a la izquierda hasta llegar a 6 cifras (Ej: 004523)
+            const kmTexto = km.toString().padStart(6, '0');
+            const contenedor = document.getElementById('odometer');
+            contenedor.innerHTML = ''; // Limpiamos
+            
+            for (let i = 0; i < kmTexto.length; i++) {
+                const span = document.createElement('span');
+                span.className = 'odometer-digit';
+                span.innerText = kmTexto[i];
+                contenedor.appendChild(span);
+            }
+        }
     </script>
 
     <!-- SCRIPT 2: BASE DE DATOS Y LÓGICA -->
@@ -232,7 +304,7 @@
             refrescarCalendario();
         });
 
-        // 2. Cargar Semanas Especiales CON BOTÓN DE BORRAR
+        // 2. Cargar Semanas Especiales
         const qEspeciales = query(collection(db, "semanas_especiales"), orderBy("inicio", "asc"));
         onSnapshot(qEspeciales, (snapshot) => {
             const contenedor = document.getElementById('contenedor-especiales');
@@ -267,7 +339,6 @@
                 `;
                 contenedor.appendChild(div);
 
-                // Evento para asignar usuario
                 div.querySelector('.selector-usuario').addEventListener('change', async (e) => {
                     const nuevoUsuario = e.target.value;
                     const docRef = doc(db, "semanas_especiales", id);
@@ -287,18 +358,27 @@
             refrescarCalendario();
         });
 
-        // 3. Cargar Historial Viajes y BORRAR VIAJES
+        // 3. Cargar Historial Viajes, Contadores y ODOMETER
         const qViajes = query(collection(db, "viajes"), orderBy("timestamp", "desc"));
         onSnapshot(qViajes, (snapshot) => {
             const tbody = document.getElementById('tabla-viajes');
             tbody.innerHTML = '';
             const contadores = { Ekaitz: 0, Pablo: 0, Dani: 0, Ion: 0 };
             let viajesRegistrados = 0;
+            let ultimoKmAbsoluto = 0; // Guardaremos el km_final del viaje más reciente
 
             snapshot.forEach((documento) => {
                 const v = documento.data();
                 viajesRegistrados++;
+                
+                // Actualizar contadores por usuario
                 if(contadores[v.usuario] !== undefined) contadores[v.usuario] += v.distancia;
+
+                // Capturar el kmFinal del viaje más reciente para el ODOMETER
+                // Al estar ordenado por 'timestamp' desc, el primer registro que tenga 'kmFinal' es el más actual
+                if (ultimoKmAbsoluto === 0 && v.kmFinal) {
+                    ultimoKmAbsoluto = v.kmFinal;
+                }
 
                 const textoFecha = v.fechaInicio && v.fechaFin ? `${v.fechaInicio}<br>al<br>${v.fechaFin}` : v.fecha;
                 const tr = document.createElement('tr');
@@ -315,6 +395,9 @@
                 tbody.appendChild(tr);
             });
 
+            // Actualizar Odometer visual
+            actualizarOdometer(ultimoKmAbsoluto);
+
             if(viajesRegistrados === 0) tbody.innerHTML = '<tr><td colspan="5" style="text-align: center;">Aún no hay viajes registrados.</td></tr>';
 
             Object.keys(contadores).forEach(user => {
@@ -325,7 +408,7 @@
 
         // FUNCIONES GLOBALES PARA BORRAR DESDE EL HTML
         window.borrarViaje = async (id) => {
-            if(confirm("¿Estás seguro de que quieres borrar este viaje? Se restarán los kilómetros del contador.")) {
+            if(confirm("¿Estás seguro de que quieres borrar este viaje? Se restarán los kilómetros del contador personal y puede afectar al cuentakilómetros global.")) {
                 try { await deleteDoc(doc(db, "viajes", id)); } 
                 catch (error) { alert("Error al borrar: " + error.message); }
             }
@@ -348,11 +431,21 @@
             const kmInicio = parseInt(document.getElementById('v-kminicio').value);
             const kmFinal = parseInt(document.getElementById('v-kmfinal').value);
             
-            if (new Date(fechaFin) < new Date(fechaInicio)) return alert("La fecha de fin no puede ser anterior a la de inicio.");
+            if (new Date(fechaFin).getTime() < new Date(fechaInicio).getTime()) return alert("La fecha de fin no puede ser anterior a la de inicio.");
             if (kmFinal <= kmInicio) return alert("Los kilómetros finales deben ser mayores que los iniciales.");
             
             try {
-                await addDoc(collection(db, "viajes"), { usuario, destino, fechaInicio, fechaFin, distancia: kmFinal - kmInicio, timestamp: new Date() });
+                // AQUÍ AÑADIMOS kmInicio y kmFinal a la base de datos para que el odometer sepa leerlos
+                await addDoc(collection(db, "viajes"), { 
+                    usuario, 
+                    destino, 
+                    fechaInicio, 
+                    fechaFin, 
+                    kmInicio,
+                    kmFinal,
+                    distancia: kmFinal - kmInicio, 
+                    timestamp: new Date() 
+                });
                 cerrarModal('modal-viaje');
             } catch (error) { alert("Error al guardar: " + error.message); }
         });
@@ -362,7 +455,7 @@
             const usuario = document.getElementById('r-usuario').value;
             const inicio = document.getElementById('r-inicio').value;
             const fin = document.getElementById('r-fin').value;
-            if (new Date(fin) < new Date(inicio)) return alert("La fecha de fin no puede ser anterior a la de inicio.");
+            if (new Date(fin).getTime() < new Date(inicio).getTime()) return alert("La fecha de fin no puede ser anterior a la de inicio.");
             try {
                 await addDoc(collection(db, "reservas"), { usuario, inicio, fin });
                 cerrarModal('modal-reserva');
@@ -374,7 +467,7 @@
             const titulo = document.getElementById('e-titulo').value;
             const inicio = document.getElementById('e-inicio').value;
             const fin = document.getElementById('e-fin').value;
-            if (new Date(fin) < new Date(inicio)) return alert("La fecha de fin no puede ser anterior a la de inicio.");
+            if (new Date(fin).getTime() < new Date(inicio).getTime()) return alert("La fecha de fin no puede ser anterior a la de inicio.");
             try {
                 await addDoc(collection(db, "semanas_especiales"), { titulo, inicio, fin, usuario: "" });
                 cerrarModal('modal-especial');
